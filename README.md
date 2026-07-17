@@ -1,107 +1,196 @@
-<div align="center">
+<p align="center">
+  <h1 align="center">broadcast</h1>
+  <p align="center">
+    Turn a blog post into platform-native content, X Articles and LinkedIn posts, from one CLI.
+    <br /><br />
+    <a href="https://github.com/urmzd/broadcast/issues">Report Bug</a>
+    &middot;
+    <a href="https://urmzd.com">urmzd.com</a>
+  </p>
+</p>
 
-# broadcast
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/urmzd/broadcast" alt="License"></a>
+</p>
 
-Turn a blog post into platform-native content — X Articles, LinkedIn posts,
-and whatever ships next — from one CLI.
+broadcast takes a written blog post and produces the platform-native versions:
+an X Article draft (created through the API), a LinkedIn feed share, and
+paste-ready HTML for the editors that have no API. Credentials for both
+platforms live in a single gpg-encrypted store, unlocked with one passphrase,
+never written to disk in plaintext.
 
-</div>
+The rendering and API steps are TypeScript (they live in
+[`urmzd.com/scripts`](https://github.com/urmzd/urmzd.com/tree/main/scripts));
+broadcast is the Python front-end that holds your credentials and drives them.
 
-## Status
+## Features
 
-Planning. The working implementation currently lives in
-[`urmzd.com`](https://github.com/urmzd/urmzd.com) and will migrate here:
+- **One encrypted credential store.** X and LinkedIn app keys and OAuth tokens
+  in a single AES-256 file, unlocked by one passphrase. Nothing in plaintext on
+  disk, ever.
+- **Token bootstrap built in.** `x auth` and `linkedin auth` run the OAuth
+  browser flow and write the resulting tokens back into the store for you.
+- **Draft-safe by default.** X articles are created as drafts; LinkedIn shares
+  preview until you pass `--yes`. Publishing is always an explicit step.
+- **CLI and MCP.** The same operations are a command line (`broadcast`) and an
+  MCP server (`broadcast-mcp`) you can wire into an agent.
 
-| Source (urmzd.com) | Becomes |
+## Installation
+
+### Prerequisites
+
+| Requirement | Why |
 | --- | --- |
-| `scripts/lib/repost-core.ts` | Core: post loading, markdown preprocessing, block scanning, headless PNG rendering (mermaid / math / tables / code) |
-| `scripts/generate-reposts.ts` | `broadcast generate <slug>` — paste-ready HTML (data-URI images), feed-post text, per-fence code files, cover image |
-| `scripts/publish-x-article.ts` | `broadcast x draft <slug>` — markdown → DraftJS, media upload, `POST /2/articles/draft` (draft-only; `publish` is a separate explicit verb) |
-| `scripts/get-linkedin-token.ts` | `broadcast linkedin auth` — 3-legged OAuth, prints token + person URN |
-| `scripts/publish-linkedin-post.ts` | `broadcast linkedin share <slug>` — feed post with article card via `POST /rest/posts` (preview by default; `--yes` to go live) |
-| `skills/publish-reposts/SKILL.md` | `skills/` — agent-facing workflow docs |
+| [uv](https://docs.astral.sh/uv/) | run the Python workspace |
+| [gpg](https://gnupg.org/) | encrypt the credential store |
+| [Node](https://nodejs.org/) + `npx` | run the TypeScript publishing steps (`npx tsx`) |
+| The tsx steps | `urmzd.com/scripts` (or set `BROADCAST_SCRIPTS_DIR`) |
 
-## Design constraints (learned the hard way)
+You also need a developer app on each platform you publish to (see
+[Platform setup](#platform-setup)).
 
-- **X**: full Articles API with a real draft state (`POST /2/articles/draft`,
-  then `/publish`). No code-block type — code renders to monospace PNGs with
-  a deep link to the highlighted original. OAuth 1.0a user context.
-- **LinkedIn**: long-form articles have **no public API** (retrieve/delete
-  only) — the article body remains an editor paste flow; only the feed share
-  automates. The Posts API has **no draft state on creation** ("PUBLISHED is
-  the only accepted value"), so the CLI treats LinkedIn shares as
-  irreversible: preview by default, explicit confirmation to post.
-- Neither platform's editor fetches pasted image URLs; paste-ready HTML
-  embeds rendered images as `data:` URIs so the pixels travel with the
-  clipboard.
-- Feed-post hashtag casing needs an acronym map (`#RAG`, not `#Rag`).
-
-## Planned shape
-
-```text
-broadcast generate <post.md>         # all paste-ready artifacts
-broadcast x draft <post.md>          # X Article draft via API
-broadcast x publish <article-id>     # explicit, separate publish step
-broadcast linkedin auth              # one-time token bootstrap
-broadcast linkedin share <post.md>   # feed share (preview → --yes)
-```
-
-Input is any markdown/MDX blog post with frontmatter (`title`,
-`description`, `shareText`, `tags`); the source repo stays decoupled so this
-works for any blog, not just urmzd.com.
-
-## Layout
-
-A `uv` workspace: pure logic in `libs/`, thin front-ends in `apps/`, sharing
-one `broadcast` namespace package.
-
-```text
-libs/core   → broadcast.core   encrypted store, gpg crypto, tsx step runner
-apps/cli    → broadcast.cli     argparse front-end (the `broadcast` command)
-apps/mcp    → broadcast.mcp     the same steps exposed as MCP tools
-```
-
-The TypeScript steps still live in `urmzd.com/scripts`; the launcher drives
-them with credentials injected, so broadcast owns the flow before the code
-migrates here.
-
-## Running it today
+### Setup
 
 ```sh
-uv sync                                  # install the workspace (cli + mcp + core)
-
-uv run broadcast init                    # create the encrypted store
-uv run broadcast import                  # one-time pull from ~/.envrc.local
-uv run broadcast edit                    # $EDITOR to add app keys
-uv run broadcast x auth                  # OAuth token for X, upserted
-uv run broadcast x publish <slug> [--dry-run] [--publish]
-uv run broadcast linkedin auth           # token + person URN, upserted
-uv run broadcast linkedin share <slug> [--yes]
-uv run broadcast generate <slug>         # paste-ready artifacts (no secrets)
-
-uv run broadcast-mcp                      # MCP server: status, generate,
-                                          # x_publish, linkedin_share tools
+git clone https://github.com/urmzd/broadcast
+cd broadcast
+uv sync
 ```
 
-`just check` runs fmt + lint + tests. Overrides: `BROADCAST_SCRIPTS_DIR`
-(default `~/github/urmzd.com/scripts`), `BROADCAST_TSX` (default `npx tsx`),
-`BROADCAST_STORE`, `BROADCAST_PASSPHRASE`.
+`uv sync` installs the CLI, the MCP server, and the shared core into a managed
+virtualenv. Prefix commands with `uv run`, or activate the venv once with
+`direnv allow`.
 
-## Credentials
+## Quick Start
 
-Encrypted at rest, self-contained, never dependent on `~/.envrc.local`. All
-secrets live in `secrets.gpg` (GPG symmetric, AES-256, default
-`~/.config/broadcast/`); the passphrase comes from `$BROADCAST_PASSPHRASE` or
-an interactive prompt and is fed to gpg over a pipe fd, never on argv or disk.
-Each step decrypts the store **in memory** and injects the vars straight into
-the child process environment, so no plaintext env file is ever written. Auth
-steps print fresh tokens; the launcher captures them and re-encrypts the store
-(upsert, never append), so there is a single writer and no piling-up
-duplicates. The MCP server has no terminal, so it requires `BROADCAST_PASSPHRASE`
-and leaves the interactive browser auth flows to the CLI.
+```sh
+# 1. Create the encrypted store (prompts for a passphrase).
+uv run broadcast init
 
-Keys owned by the store:
-`X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`,
-`X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REFRESH_TOKEN`,
+# 2. Add your app credentials (opens $EDITOR on the decrypted store).
+uv run broadcast edit
+
+# 3. Bootstrap user tokens through the OAuth browser flow.
+uv run broadcast x auth
+uv run broadcast linkedin auth
+
+# 4. Publish. X lands as a draft; LinkedIn previews until --yes.
+uv run broadcast x publish my-post-slug
+uv run broadcast linkedin share my-post-slug
+```
+
+`<slug>` is the blog post's slug (the filename under the source repo's posts
+directory). `generate` needs no credentials and just writes the paste-ready
+artifacts:
+
+```sh
+uv run broadcast generate my-post-slug
+```
+
+## Platform setup
+
+broadcast never creates the developer apps for you. Set each one up once, then
+put its keys in the store with `broadcast edit`.
+
+### X
+
+1. At [console.x.com](https://console.x.com), create an app.
+2. Under **User authentication settings**, enable OAuth 2.0. Set the app type
+   to **Native App** (public client) or **Web App** (confidential, also needs
+   `X_CLIENT_SECRET`).
+3. Add the callback URL `http://localhost:8935/callback`.
+4. Copy the **OAuth 2.0 Client ID** into the store as `X_CLIENT_ID`.
+5. Run `broadcast x auth`. It requests the `tweet.read tweet.write users.read
+   media.write offline.access` scopes and writes `X_ACCESS_TOKEN` /
+   `X_REFRESH_TOKEN` back.
+
+`x publish` works with either the OAuth 2.0 token (`X_ACCESS_TOKEN`) or the full
+OAuth 1.0a set (`X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`,
+`X_ACCESS_TOKEN_SECRET`) if you prefer that path.
+
+### LinkedIn
+
+1. At [linkedin.com/developers/apps](https://www.linkedin.com/developers/apps),
+   create an app.
+2. Add the products **Share on LinkedIn** and **Sign In with LinkedIn using
+   OpenID Connect**.
+3. Under **Auth**, add the redirect URL `http://localhost:8935/callback`, and
+   copy the client ID and secret into the store as `LINKEDIN_CLIENT_ID` /
+   `LINKEDIN_CLIENT_SECRET`.
+4. Run `broadcast linkedin auth`. It requests `openid profile w_member_social`
+   and writes `LINKEDIN_ACCESS_TOKEN` / `LINKEDIN_PERSON_URN` back. Tokens last
+   about two months.
+
+The LinkedIn long-form article has no public API, so its body stays a manual
+editor paste (use `generate` for the HTML). Only the feed share is automated,
+and it has no draft state: `linkedin share --yes` posts live immediately.
+
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `broadcast init [--force]` | Create the encrypted store. |
+| `broadcast import [FILE]` | Pull `X_*`/`LINKEDIN_*` from `~/.envrc.local` (or FILE) into the store. |
+| `broadcast set KEY [VALUE]` | Upsert one secret (prompts if VALUE is omitted). |
+| `broadcast unset KEY` | Remove one secret. |
+| `broadcast list` | List stored keys with masked values. |
+| `broadcast edit` | Open `$EDITOR` on the decrypted store, then re-encrypt. |
+| `broadcast x auth` | OAuth browser flow for X; upserts the tokens. |
+| `broadcast x publish <slug> [--dry-run] [--publish]` | Create an X Article draft; `--publish` makes it public. |
+| `broadcast linkedin auth` | OAuth browser flow for LinkedIn; upserts token and person URN. |
+| `broadcast linkedin share <slug> [--yes]` | Preview, then with `--yes` post the feed share live. |
+| `broadcast generate <slug>` | Write paste-ready artifacts (no credentials). |
+| `broadcast run <script.ts> [args...]` | Run any tsx step with the store injected. |
+
+## Credentials and security
+
+Secrets live in one gpg-symmetric file (AES-256), by default at
+`~/.config/broadcast/secrets.gpg`. The passphrase comes from
+`$BROADCAST_PASSPHRASE` or an interactive prompt and is handed to gpg over a
+pipe file descriptor, never on the command line or disk. Every step decrypts
+the store in memory and injects the variables straight into the child process
+environment, so no plaintext credential file is written. The `auth` steps
+capture the freshly printed tokens and re-encrypt the store, replacing rather
+than appending, so a value never accumulates duplicates.
+
+Keys the store manages: `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`,
+`X_ACCESS_TOKEN_SECRET`, `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REFRESH_TOKEN`,
 `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `LINKEDIN_ACCESS_TOKEN`,
-`LINKEDIN_PERSON_URN`.
+`LINKEDIN_PERSON_URN`, `LINKEDIN_VERSION`.
+
+Migrating from loose env vars? `broadcast import` reads those keys out of
+`~/.envrc.local`, collapses any duplicates (last value wins), and leaves the
+rest of the file untouched.
+
+## MCP server
+
+`broadcast-mcp` exposes the non-interactive steps as MCP tools (`status`,
+`generate`, `x_publish`, `linkedin_share`) over stdio. A server has no
+terminal, so it reads the passphrase from `BROADCAST_PASSPHRASE` and leaves the
+interactive `auth` flows to the CLI. Wire it into an MCP client like so:
+
+```json
+{
+  "mcpServers": {
+    "broadcast": {
+      "command": "uv",
+      "args": ["run", "broadcast-mcp"],
+      "cwd": "/path/to/broadcast",
+      "env": { "BROADCAST_PASSPHRASE": "..." }
+    }
+  }
+}
+```
+
+## Configuration
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `BROADCAST_PASSPHRASE` | prompt | Unlock the store non-interactively (required for the MCP server). |
+| `BROADCAST_STORE` | `~/.config/broadcast/secrets.gpg` | Encrypted store location. |
+| `BROADCAST_SCRIPTS_DIR` | `~/github/urmzd.com/scripts` | The tsx publishing steps to drive. |
+| `BROADCAST_TSX` | `npx tsx` | How to invoke tsx. |
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).
