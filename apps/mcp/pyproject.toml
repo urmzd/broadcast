@@ -1,0 +1,23 @@
+[project]
+name = "broadcast-mcp"
+version = "0.1.0"
+description = "broadcast MCP server: the publishing steps exposed as MCP tools"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "broadcast-core",
+    "mcp>=1.2",
+]
+
+[project.scripts]
+broadcast-mcp = "broadcast.mcp:main"
+
+[build-system]
+requires = ["uv_build>=0.8.3,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "broadcast.mcp"
+
+[tool.uv.sources]
+broadcast-core = { workspace = true }

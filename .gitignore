@@ -1,0 +1,13 @@
+# Encrypted secret store — AES-256, but never pushed anyway.
+secrets.gpg
+.secrets.*.tmp
+broadcast-*/
+
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
