@@ -38,9 +38,9 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("action", choices=["auth", "publish"])
     p.add_argument("rest", nargs=argparse.REMAINDER, help="<slug> [--dry-run] [--publish]")
 
-    p = sub.add_parser("linkedin", help="LinkedIn: auth | share")
-    p.add_argument("action", choices=["auth", "share"])
-    p.add_argument("rest", nargs=argparse.REMAINDER, help="<slug> [--yes]")
+    p = sub.add_parser("linkedin", help="LinkedIn: auth | share | article")
+    p.add_argument("action", choices=["auth", "share", "article"])
+    p.add_argument("rest", nargs=argparse.REMAINDER, help="<slug> [--yes] | article [--login]")
 
     p = sub.add_parser("generate", help="paste-ready artifacts (no secrets)")
     p.add_argument("slug")

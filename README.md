@@ -127,9 +127,12 @@ OAuth 1.0a set (`X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`,
    and writes `LINKEDIN_ACCESS_TOKEN` / `LINKEDIN_PERSON_URN` back. Tokens last
    about two months.
 
-The LinkedIn long-form article has no public API, so its body stays a manual
-editor paste (use `generate` for the HTML). Only the feed share is automated,
-and it has no draft state: `linkedin share --yes` posts live immediately.
+The LinkedIn long-form article has no public API. `linkedin article` drives
+the editor with a headless browser instead: run `linkedin article --login`
+once to save a session, then `linkedin article <slug>` pastes the generated
+HTML and leaves an autosaved draft for review (it never publishes). The feed
+share (`linkedin share`) uses the Posts API and has no draft state, so
+`--yes` posts live immediately.
 
 ## Commands
 
@@ -145,6 +148,7 @@ and it has no draft state: `linkedin share --yes` posts live immediately.
 | `broadcast x publish <slug> [--dry-run] [--publish]` | Create an X Article draft; `--publish` makes it public. |
 | `broadcast linkedin auth` | OAuth browser flow for LinkedIn; upserts token and person URN. |
 | `broadcast linkedin share <slug> [--yes]` | Preview, then with `--yes` post the feed share live. |
+| `broadcast linkedin article <slug>` / `--login` | Draft a long-form LinkedIn article by driving the editor (saved browser session). |
 | `broadcast generate <slug>` | Write paste-ready artifacts (no credentials). |
 | `broadcast run <script.ts> [args...]` | Run any tsx step with the store injected. |
 

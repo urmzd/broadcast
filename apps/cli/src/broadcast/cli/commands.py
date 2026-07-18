@@ -179,6 +179,11 @@ def linkedin(
             _LINKEDIN_TOKENS,
             "linkedin auth",
         )
+    if action == "article":
+        # Long-form article draft via browser UI automation (a saved LinkedIn
+        # session, not the API), so no store secrets are needed. Pass <slug>
+        # or --login through.
+        return runner.run("publish-linkedin-article.ts", rest, {})
     secrets, _ = _open(store, settings)
     require(secrets, ["LINKEDIN_ACCESS_TOKEN", "LINKEDIN_PERSON_URN"], "linkedin share")
     return runner.run("publish-linkedin-post.ts", rest, secrets)
