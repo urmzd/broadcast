@@ -1,0 +1,38 @@
+{
+  "name": "@urmzd/broadcast",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn a blog post into platform-native content (X Articles, LinkedIn posts) from one CLI",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "broadcast": "dist/bin/broadcast.js",
+    "broadcast-mcp": "dist/bin/broadcast-mcp.js"
+  },
+  "files": ["dist/"],
+  "scripts": {
+    "build": "tsc",
+    "cli": "tsx src/bin/broadcast.ts",
+    "mcp": "tsx src/bin/broadcast-mcp.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/",
+    "fmt": "biome check --write src/",
+    "test": "vitest run",
+    "check": "npm run fmt && npm run lint && npm run typecheck && npm run test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "commander": "^14.0.0",
+    "katex": "^0.16.28",
+    "mermaid": "^11.15.0",
+    "playwright": "^1.58.2",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.0",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.0",
+    "typescript": "^5.9.0",
+    "vitest": "^2.0.0"
+  }
+}
