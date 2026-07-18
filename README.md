@@ -19,9 +19,11 @@ paste-ready HTML for the editors that have no API. Credentials for both
 platforms live in a single gpg-encrypted store, unlocked with one passphrase,
 never written to disk in plaintext.
 
-The rendering and API steps are TypeScript (they live in
-[`urmzd.com/scripts`](https://github.com/urmzd/urmzd.com/tree/main/scripts));
-broadcast is the Python front-end that holds your credentials and drives them.
+The rendering and API steps are TypeScript, in [`pipeline/`](pipeline/); the
+Python CLI holds your credentials and drives them. The pipeline reads any
+blog's markdown and defaults to a local urmzd.com checkout, but every path is
+env-overridable (see [Configuration](#configuration)), so it works for any
+blog.
 
 ## Features
 
@@ -41,10 +43,9 @@ broadcast is the Python front-end that holds your credentials and drives them.
 
 | Requirement | Why |
 | --- | --- |
-| [uv](https://docs.astral.sh/uv/) | run the Python workspace |
+| [uv](https://docs.astral.sh/uv/) | run the Python CLI / MCP server |
 | [gpg](https://gnupg.org/) | encrypt the credential store |
-| [Node](https://nodejs.org/) + `npx` | run the TypeScript publishing steps (`npx tsx`) |
-| The tsx steps | `urmzd.com/scripts` (or set `BROADCAST_SCRIPTS_DIR`) |
+| [Node](https://nodejs.org/) | run the TypeScript pipeline in `pipeline/` |
 
 You also need a developer app on each platform you publish to (see
 [Platform setup](#platform-setup)).
@@ -54,12 +55,17 @@ You also need a developer app on each platform you publish to (see
 ```sh
 git clone https://github.com/urmzd/broadcast
 cd broadcast
-uv sync
+
+uv sync                                   # Python CLI, MCP server, shared core
+
+cd pipeline && npm install                # rendering + publishing steps
+npx playwright install chromium           # headless browser for diagram/table PNGs
+cd ..
 ```
 
-`uv sync` installs the CLI, the MCP server, and the shared core into a managed
-virtualenv. Prefix commands with `uv run`, or activate the venv once with
-`direnv allow`.
+`uv sync` installs into a managed virtualenv; prefix commands with `uv run`, or
+activate it once with `direnv allow`. The pipeline's `npm install` and the
+one-time `playwright install` provide the headless renderer.
 
 ## Quick Start
 
@@ -188,8 +194,14 @@ interactive `auth` flows to the CLI. Wire it into an MCP client like so:
 | --- | --- | --- |
 | `BROADCAST_PASSPHRASE` | prompt | Unlock the store non-interactively (required for the MCP server). |
 | `BROADCAST_STORE` | `~/.config/broadcast/secrets.gpg` | Encrypted store location. |
-| `BROADCAST_SCRIPTS_DIR` | `~/github/urmzd.com/scripts` | The tsx publishing steps to drive. |
+| `BROADCAST_BLOG_DIR` | `~/github/urmzd.com/src/blog` | Directory holding `<slug>.mdx` / `<slug>.md`. |
+| `BROADCAST_OUTPUT_DIR` | `~/github/urmzd.com` | Base for `reposts/`, `public/images/reposts/`, `dist/og/`. |
+| `BROADCAST_SITE_URL` | `https://urmzd.com` | Public base URL of the blog, for deep links. |
+| `BROADCAST_SCRIPTS_DIR` | `<repo>/pipeline/scripts` | The tsx publishing steps to drive. |
 | `BROADCAST_TSX` | `npx tsx` | How to invoke tsx. |
+
+Point the first three at another blog and broadcast works for it: no urmzd.com
+coupling beyond the defaults.
 
 ## License
 

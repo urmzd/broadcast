@@ -11,3 +11,7 @@ __pycache__/
 .ruff_cache/
 dist/
 *.egg-info/
+
+# Node pipeline
+node_modules/
+pipeline/test-results/

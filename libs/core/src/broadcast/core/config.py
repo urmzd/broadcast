@@ -13,7 +13,12 @@ def _default_store() -> Path:
 
 
 def _default_scripts_dir() -> Path:
-    return Path.home() / "github" / "urmzd.com" / "scripts"
+    # The tsx steps now live in this repo. Prefer a pipeline/ next to the
+    # current checkout, falling back to the conventional clone location.
+    local = Path.cwd() / "pipeline" / "scripts"
+    if (local / "lib" / "repost-core.ts").exists():
+        return local
+    return Path.home() / "github" / "broadcast" / "pipeline" / "scripts"
 
 
 class Settings(BaseSettings):
