@@ -3,15 +3,8 @@ secrets.gpg
 .secrets.*.tmp
 broadcast-*/
 
-# Python / uv
-.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-.ruff_cache/
-dist/
-*.egg-info/
-
-# Node pipeline
+# Node
 node_modules/
-pipeline/test-results/
+dist/
+*.tsbuildinfo
+test-results/
